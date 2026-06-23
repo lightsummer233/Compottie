@@ -28,7 +28,6 @@ import io.github.alexzhirkevich.compottie.internal.helpers.GradientType
 import io.github.alexzhirkevich.compottie.internal.helpers.asPathFillType
 import io.github.alexzhirkevich.compottie.internal.platform.GradientCache
 import io.github.alexzhirkevich.compottie.internal.platform.GradientShader
-import io.github.alexzhirkevich.compottie.internal.platform.PathBuilder
 import io.github.alexzhirkevich.compottie.internal.utils.IdentityMatrix
 import io.github.alexzhirkevich.compottie.internal.utils.extendBy
 import io.github.alexzhirkevich.compottie.internal.utils.firstInstanceOf
@@ -42,66 +41,66 @@ import kotlinx.serialization.Transient
 internal class GradientFillShape(
 
     @SerialName("mn")
-    override val matchName : String? = null,
+    override val matchName: String? = null,
 
     @SerialName("nm")
-    override val name : String? = null,
+    override val name: String? = null,
 
     @SerialName("hd")
-    override val hidden : Boolean = false,
+    override val hidden: Boolean = false,
 
     @SerialName("o")
-    val opacity : AnimatedNumber = AnimatedNumber.defaultOpacity(),
+    val opacity: AnimatedNumber = AnimatedNumber.defaultOpacity(),
 
     @SerialName("s")
-    val startPoint : AnimatedVector2,
+    val startPoint: AnimatedVector2,
 
     @SerialName("e")
-    val endPoint : AnimatedVector2,
+    val endPoint: AnimatedVector2,
 
     @SerialName("t")
-    val gradientType : GradientType,
+    val gradientType: GradientType,
 
-//    @SerialName("h")
-//    val highlightLength : AnimatedNumber? = null,
-//
-//    @SerialName("a")
-//    val highlightAngle : AnimatedNumber? = null,
+    @SerialName("h")
+    val highlightLength: AnimatedNumber? = null,
+
+    @SerialName("a")
+    val highlightAngle: AnimatedNumber? = null,
 
     @SerialName("g")
-    val colors : GradientColors,
+    val colors: GradientColors,
 
     @SerialName("r")
-    val fillRule : FillRule? = null,
+    val fillRule: FillRule? = null,
 ) : Shape, DrawingContent {
 
     @Transient
     private val path = Path()
 
     @Transient
-    private val fillType =  fillRule?.asPathFillType() ?: path.fillType
+    private val fillType = fillRule?.asPathFillType() ?: path.fillType
 
     @Transient
-    private val boundsRect = MutableRect(0f,0f,0f,0f)
+    private val boundsRect = MutableRect(0f, 0f, 0f, 0f)
 
     @Transient
     private var pathContents: List<PathContent> = emptyList()
 
-    private val paint= Paint().apply {
+    private val paint = Paint().apply {
         isAntiAlias = true
     }
 
+    @Transient
+    private var dynamicFill: DynamicFillProvider? = null
 
     @Transient
-    private var dynamicFill : DynamicFillProvider? = null
-    @Transient
-    private var dynamicShape : DynamicShapeProvider? = null
+    private var dynamicShape: DynamicShapeProvider? = null
 
     @Transient
     private val gradientCache = GradientCache()
 
     @Transient
-    private var roundShape : RoundShape? = null
+    private var roundShape: RoundShape? = null
 
     private val effectsState by lazy {
         LayerEffectsState()
@@ -121,6 +120,8 @@ internal class GradientFillShape(
                 startPoint = startPoint,
                 endPoint = endPoint,
                 colors = colors,
+                highlightingAngle = highlightAngle,
+                highlightingLength = highlightLength,
                 state = state,
                 matrix = parentMatrix,
                 cache = gradientCache

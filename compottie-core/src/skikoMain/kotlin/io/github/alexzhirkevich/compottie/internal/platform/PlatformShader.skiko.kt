@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.asComposeShader
 import androidx.compose.ui.graphics.skiaPaint
 import androidx.compose.ui.graphics.toArgb
+import io.github.alexzhirkevich.compottie.internal.utils.degreeToRadians
 import org.jetbrains.skia.Color4f
 import org.jetbrains.skia.FilterBlurMode
 import org.jetbrains.skia.FilterTileMode
@@ -17,16 +18,18 @@ import org.jetbrains.skia.ImageFilter
 import org.jetbrains.skia.MaskFilter
 import org.jetbrains.skia.Matrix33
 import kotlin.math.abs
+import kotlin.math.cos
+import kotlin.math.sin
 import org.jetbrains.skia.Shader as SkShader
 
 internal actual fun MakeLinearGradient(
-    from : Offset,
-    to : Offset,
-    colors : List<Color>,
+    from: Offset,
+    to: Offset,
+    colors: List<Color>,
     colorStops: List<Float>,
     tileMode: TileMode,
     matrix: Matrix
-) : Shader = SkShader.makeLinearGradient(
+): Shader = SkShader.makeLinearGradient(
     x0 = from.x,
     y0 = from.y,
     x1 = to.x,
@@ -44,14 +47,18 @@ internal actual fun MakeLinearGradient(
     localMatrix = matrix.asSkia33(coerceScale = true)
 ).asComposeShader()
 
+private val tmpMatrix = Matrix()
+
 internal actual fun MakeRadialGradient(
-    center : Offset,
-    radius : Float,
-    colors : List<Color>,
+    center: Offset,
+    radius: Float,
+    highlightingAngle: Float,
+    highlightingLength: Float,
+    colors: List<Color>,
     colorStops: List<Float>,
     tileMode: TileMode,
     matrix: Matrix
-) : Shader = SkShader.makeRadialGradient(
+) = SkShader.makeRadialGradient(
     x = center.x,
     y = center.y,
     radius = radius,
@@ -59,13 +66,28 @@ internal actual fun MakeRadialGradient(
         colors = Gradient.Colors(
             colors = colors.toColor4fArray(),
             positions = colorStops.toFloatArray(),
-            tileMode = FilterTileMode.CLAMP
+            tileMode = tileMode.toSkiaTileMode()
         ),
         interpolation = Gradient.Interpolation(
             inPremul = Gradient.Interpolation.InPremul.YES
         )
     ),
-    localMatrix = matrix.asSkia33(coerceScale = true)
+    localMatrix = if (highlightingLength == 0f) {
+        matrix.asSkia33(coerceScale = true)
+    } else {
+        val angle = degreeToRadians(highlightingAngle)
+        val focalOffsetX = highlightingLength * sin(angle)
+        val focalOffsetY = highlightingLength * cos(angle)
+
+        tmpMatrix.resetToPivotedTransform(
+            pivotX = center.x,
+            pivotY = center.y,
+            translationX = focalOffsetX,
+            translationY = focalOffsetY,
+        )
+        tmpMatrix.timesAssign(matrix)
+        tmpMatrix.asSkia33(coerceScale = true)
+    }
 ).asComposeShader()
 
 internal actual fun MakeSweepGradient(
@@ -81,18 +103,27 @@ internal actual fun MakeSweepGradient(
         colors = Gradient.Colors(
             colors = colors.toColor4fArray(),
             positions = colorStops.toFloatArray(),
-            tileMode = FilterTileMode.CLAMP
+            tileMode = TileMode.Clamp.toSkiaTileMode()
         ),
         interpolation = Gradient.Interpolation(
             inPremul = Gradient.Interpolation.InPremul.YES
         )
     ),
+    localMatrix = matrix
+        .asSkia33(coerceScale = true)
+        .let {
+            if (angle == 0f) {
+                it
+            } else {
+                Matrix33.makeRotate(angle, center.x, center.y)
+            }
+        }
 ).asComposeShader()
 
-private val _tmpMatrix33 = Matrix33.makeTranslate(0f,0f)
 
+private val _tmpMatrix33 = Matrix33.makeTranslate(0f, 0f)
 
-internal fun Matrix.asSkia33(coerceScale : Boolean = false) : Matrix33 {
+internal fun Matrix.asSkia33(coerceScale: Boolean = false): Matrix33 {
 
     // skiko shaders with zero scale cause crash
 
@@ -139,8 +170,7 @@ internal fun TileMode.toSkiaTileMode(): FilterTileMode = when (this) {
 //internal actual val ColorFilter.Companion.Luma get() = org.jetbrains.skia.ColorFilter.luma.asComposeColorFilter()
 
 
-
-internal actual fun Paint.setBlurMaskFilter(radius: Float, isImage : Boolean) {
+internal actual fun Paint.setBlurMaskFilter(radius: Float, isImage: Boolean) {
     val skPaint = skiaPaint
 
     val sigma = if (radius > 0) {
@@ -152,7 +182,7 @@ internal actual fun Paint.setBlurMaskFilter(radius: Float, isImage : Boolean) {
     if (sigma > 0f) {
         if (isImage) {
             skPaint.imageFilter = ImageFilter.makeBlur(sigma, sigma, FilterTileMode.DECAL)
-        } else  {
+        } else {
             skPaint.maskFilter = MaskFilter.makeBlur(FilterBlurMode.NORMAL, sigma)
         }
     } else {
@@ -162,4 +192,3 @@ internal actual fun Paint.setBlurMaskFilter(radius: Float, isImage : Boolean) {
 }
 
 internal val BlurSigmaScale = .3f
-

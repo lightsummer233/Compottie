@@ -19,50 +19,50 @@ import kotlinx.serialization.Serializable
 internal class GradientStrokeShape(
 
     @SerialName("mn")
-    override val matchName : String? = null,
+    override val matchName: String? = null,
 
     @SerialName("nm")
-    override val name : String? = null,
+    override val name: String? = null,
 
     @SerialName("hd")
-    override val hidden : Boolean = false,
+    override val hidden: Boolean = false,
 
     @SerialName("lc")
-    override val lineCap : LineCap = LineCap.Round,
+    override val lineCap: LineCap = LineCap.Round,
 
     @SerialName("lj")
-    override val lineJoin : LineJoin = LineJoin.Round,
+    override val lineJoin: LineJoin = LineJoin.Round,
 
     @SerialName("ml")
-    override val strokeMiter : Float = 0f,
+    override val strokeMiter: Float = 0f,
 
     @SerialName("o")
-    override val opacity : AnimatedNumber = AnimatedNumber.defaultOpacity(),
+    override val opacity: AnimatedNumber = AnimatedNumber.defaultOpacity(),
 
     @SerialName("w")
-    override val strokeWidth : AnimatedNumber,
+    override val strokeWidth: AnimatedNumber,
 
     @SerialName("d")
     override val strokeDash: List<StrokeDash>? = null,
 
     @SerialName("s")
-    val startPoint : AnimatedVector2,
+    val startPoint: AnimatedVector2,
 
     @SerialName("e")
-    val endPoint : AnimatedVector2,
+    val endPoint: AnimatedVector2,
 
     @SerialName("h")
-    val highlightLength : AnimatedNumber? = null,
+    val highlightLength: AnimatedNumber? = null,
 
     @SerialName("a")
-    val highlightAngle : AnimatedNumber? = null,
+    val highlightAngle: AnimatedNumber? = null,
 
     @SerialName("g")
-    val colors : GradientColors,
+    val colors: GradientColors,
 
     @SerialName("t")
-    val gradientType : GradientType = GradientType.Linear
-)  : BaseStrokeShape(), Shape {
+    val gradientType: GradientType = GradientType.Linear
+) : BaseStrokeShape(), Shape {
 
     override fun draw(drawScope: DrawScope, parentMatrix: Matrix, parentAlpha: Float, state: AnimationState) {
 
@@ -72,6 +72,8 @@ internal class GradientStrokeShape(
                 startPoint = startPoint,
                 endPoint = endPoint,
                 colors = colors,
+                highlightingAngle = highlightAngle,
+                highlightingLength = highlightLength,
                 state = state,
                 matrix = IdentityMatrix,
                 cache = gradientCache
@@ -110,4 +112,3 @@ internal class GradientStrokeShape(
         )
     }
 }
-

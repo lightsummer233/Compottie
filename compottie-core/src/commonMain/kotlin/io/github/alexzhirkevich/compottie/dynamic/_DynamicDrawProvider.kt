@@ -1,7 +1,6 @@
 package io.github.alexzhirkevich.compottie.dynamic
 
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
@@ -18,14 +17,14 @@ internal sealed interface DynamicDrawProvider : DynamicDraw {
     val colorFilter: PropertyProvider<ColorFilter?>?
     val blendMode: PropertyProvider<BlendMode>?
 
-    val hidden : PropertyProvider<Boolean>?
+    val hidden: PropertyProvider<Boolean>?
 
     val gradient: GradientProvider?
     val color: PropertyProvider<Color>?
 }
 
 internal sealed class BaseDynamicDrawProvider : DynamicShapeProvider(),
-    DynamicDraw, DynamicDrawProvider{
+    DynamicDraw, DynamicDrawProvider {
 
     final override var opacity: PropertyProvider<Float>? = null
         private set
@@ -58,6 +57,7 @@ internal sealed class BaseDynamicDrawProvider : DynamicShapeProvider(),
         gradient = provider
         color = null
     }
+
     override fun color(provider: PropertyProvider<Color>) {
         color = provider
         gradient = null
@@ -68,16 +68,18 @@ internal fun DynamicDrawProvider?.applyToPaint(
     paint: Paint,
     state: AnimationState,
     parentAlpha: Float,
-    parentMatrix : Matrix,
-    opacity : AnimatedNumber?,
+    parentMatrix: Matrix,
+    opacity: AnimatedNumber?,
     size: () -> Rect,
     gradientCache: GradientCache
 ) {
     val g = this?.gradient
 
     if (g != null) {
+        val bounds = size()
         paint.shader = GradientShader(
-            gradient = g.invoke(state, size()),
+            gradient = g.invoke(state, bounds),
+            bounds = bounds,
             matrix = parentMatrix,
             cache = gradientCache
         )
@@ -87,13 +89,11 @@ internal fun DynamicDrawProvider?.applyToPaint(
 
     paint.alpha = parentAlpha
 
-    if (opacity != null){
-        paint.alpha = (paint.alpha * opacity.interpolatedNorm(state)).coerceIn(0f,1f)
+    if (opacity != null) {
+        paint.alpha = (paint.alpha * opacity.interpolatedNorm(state)).coerceIn(0f, 1f)
     }
 
-    paint.alpha = this?.opacity.derive(paint.alpha, state).coerceIn(0f,1f)
+    paint.alpha = this?.opacity.derive(paint.alpha, state).coerceIn(0f, 1f)
     paint.colorFilter = this?.colorFilter.derive(paint.colorFilter, state)
     paint.blendMode = this?.blendMode.derive(paint.blendMode, state)
 }
-
-
